@@ -279,6 +279,7 @@ export function createServerWebSearch(runtimeConfig: RuntimeConfig): WebSearchFu
       provider,
       apiBase: runtimeConfig.webSearchApiBase,
       googlePseId: runtimeConfig.public.googlePseId,
+      searxngEngines: runtimeConfig.public.searxngEngines,
       tavilyAdvancedSearch: runtimeConfig.public.tavilyAdvancedSearch,
       tavilySearchTopic: runtimeConfig.public.tavilySearchTopic as
         | 'general'
@@ -355,6 +356,21 @@ export function createServerWebSearch(runtimeConfig: RuntimeConfig): WebSearchFu
         pool.markKeyError(currentApiKey)
         throw e
       }
+    }
+
+    if (provider === 'searxng') {
+      // Addressed, not authenticated: no key pool, no rotation. The instance
+      // is the deployment's own, so a failure is an outage to fix rather
+      // than a key to rotate away from.
+      return searchWeb(
+        {
+          ...sharedConfig,
+          apiKey: runtimeConfig.webSearchApiKey || undefined,
+          searxngEngines: runtimeConfig.public.searxngEngines,
+        },
+        query,
+        options,
+      )
     }
 
     if (provider === 'serply') {

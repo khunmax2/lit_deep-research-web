@@ -30,6 +30,7 @@ export default defineNuxtConfig({
       tavilyAdvancedSearch: process.env.NUXT_PUBLIC_TAVILY_ADVANCED_SEARCH === 'true',
       tavilySearchTopic: process.env.NUXT_PUBLIC_TAVILY_SEARCH_TOPIC || 'general',
       googlePseId: process.env.NUXT_PUBLIC_GOOGLE_PSE_ID,
+      searxngEngines: process.env.NUXT_PUBLIC_SEARXNG_ENGINES,
       researchFeedbackTimeoutMs: positiveInteger(
         process.env.NUXT_PUBLIC_RESEARCH_FEEDBACK_TIMEOUT_MS,
         120_000,

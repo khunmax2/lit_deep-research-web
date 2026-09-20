@@ -98,6 +98,14 @@
   ])
   const webSearchProviderOptions = computed(() => [
     {
+      label: 'SearXNG',
+      value: 'searxng',
+      help: 'settings.webSearch.providers.searxng.help',
+      // Only kept for easy reference in i18n Ally
+      _help: t('settings.webSearch.providers.searxng.help'),
+      link: 'https://docs.searxng.org/admin/installation.html',
+    },
+    {
       label: 'Tavily',
       value: 'tavily',
       help: 'settings.webSearch.providers.tavily.help',

@@ -69,6 +69,9 @@
           "help": "ค้นเว็บผ่าน You.com Search API ใช้ได้โดยไม่ต้องมี API key (จำกัดโควตารายวัน) เพิ่ม key ที่ {0} เพื่อขยายขีดจำกัด",
           "apiKeyPlaceholder": "ไม่บังคับ — เว้นว่างเพื่อใช้ระดับฟรีแบบไม่ต้องมี key"
         },
+        "searxng": {
+          "help": "เครื่องมือค้นหารวมที่คุณโฮสต์เอง ไม่ต้องใช้คีย์ และไม่มีโควตานอกจากของตัวเอง ใส่ที่อยู่ instance ในช่อง API Base URL โดย instance ต้องเปิดผลลัพธ์แบบ JSON ('json' ใต้ search.formats ใน settings.yml) ดูที่ {0}"
+        },
         "serply": {
           "help": "ค้นเว็บผ่าน Serply API (ผลจาก Google) ต้องมี API key รับได้ที่ {0}"
         }

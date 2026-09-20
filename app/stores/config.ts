@@ -16,6 +16,8 @@ function validateConfig(config: Config) {
   // Either apiBase (self-host) or apiKey (cloud) is required for crw
   if (ws.provider === 'crw' && !ws.apiBase && !ws.apiKey) return false
   if (ws.provider === 'google-pse' && (!ws.apiKey || !ws.googlePseId)) return false // Require API Key and PSE ID
+  // SearXNG is addressed, not authenticated: an instance, no key.
+  if (ws.provider === 'searxng' && !ws.apiBase) return false
   if (typeof ws.concurrencyLimit !== 'undefined' && ws.concurrencyLimit! < 1) return false
   return true
 }

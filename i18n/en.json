@@ -69,6 +69,9 @@
           "help": "Web search via the You.com Search API. Works without an API key (limited daily quota); add a key at {0} for higher limits.",
           "apiKeyPlaceholder": "Optional — leave empty for the keyless free tier"
         },
+        "searxng": {
+          "help": "A metasearch engine you host yourself — no key, no quota but your own. Enter the instance address as the API Base URL. The instance must allow JSON output: 'json' under search.formats in its settings.yml. See {0}."
+        },
         "serply": {
           "help": "Web search via the Serply API (Google results). Requires an API key; get one at {0}."
         }

@@ -16,6 +16,7 @@ export type ConfigWebSearchProvider =
   | 'google-pse'
   | 'youcom'
   | 'serply'
+  | 'searxng'
 
 export interface ConfigAi {
   provider: ConfigAiProvider

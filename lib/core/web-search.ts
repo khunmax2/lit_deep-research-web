@@ -32,6 +32,8 @@ export type WebSearchFunction = ((
 }
 
 export type WebSearchConfig = {
+  /** SearXNG only: restrict to these engines, e.g. "arxiv,pubmed". */
+  searxngEngines?: string
   provider: ConfigWebSearchProvider
   apiKey?: string
   apiBase?: string
@@ -151,6 +153,18 @@ export function buildSearchFilters(provider: ConfigWebSearchProvider, options: W
       limitations: hasDates ? ['time' as const] : [],
     }
   }
+  if (provider === 'searxng')
+    return {
+      // `language` is passed to the instance; the rest it does not model.
+      google: {},
+      firecrawl: {},
+      tavily: {},
+      limitations: [
+        ...(options.intent === 'news' ? ['news' as const] : []),
+        ...(time || hasDates ? ['time' as const] : []),
+        ...(domains ? ['domains' as const] : []),
+      ],
+    }
   if (provider === 'youcom')
     return {
       // This adapter does not apply native filters. A mixed web/news
@@ -392,6 +406,74 @@ async function searchWithYoucom(
   }
 }
 
+async function searchWithSearxng(
+  config: WebSearchConfig,
+  query: string,
+  options: WebSearchOptions,
+): Promise<WebSearchResult[]> {
+  // A SearXNG instance is addressed, not authenticated: the deployment runs
+  // its own, so there is no key and no quota. `apiBase` is the instance root
+  // or its /search endpoint — accept either, since the docs call the setting
+  // "the API url" and people reasonably paste the address they browse to.
+  const base = (config.apiBase || '').trim().replace(/\/+$/, '')
+  if (!base) throw new Error('SearXNG needs an instance address (API Base URL).')
+  const apiUrl = new URL(base.endsWith('/search') ? base : `${base}/search`)
+  apiUrl.searchParams.set('q', query)
+  apiUrl.searchParams.set('format', 'json')
+  if (config.searxngEngines) apiUrl.searchParams.set('engines', config.searxngEngines)
+  if (options.lang) apiUrl.searchParams.set('language', options.lang)
+
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  // Some instances sit behind a token rather than being open; honour one if
+  // the deployment set it, and send nothing when it did not.
+  if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`
+
+  try {
+    const doFetch = config.fetch ?? fetch
+    const response = await abortable(doFetch(apiUrl, { headers }), options.signal)
+    if (response.status === 403) {
+      // The failure every first-time instance hits: JSON output is off by
+      // default and the response is a page of HTML. Say which setting, or
+      // the caller sees a parse error about markup.
+      throw new Error(
+        'SearXNG refused the request (403). The instance must allow JSON: add ' +
+          "'json' under search.formats in its settings.yml.",
+      )
+    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const data = (await response.json()) as {
+      results?: {
+        url?: string
+        title?: string
+        content?: string
+        publishedDate?: string
+        score?: number
+      }[]
+    }
+    const max = options.maxResults ?? 5
+    return (data.results ?? []).flatMap<WebSearchResult>((r) => {
+      const content = (r.content ?? '').trim()
+      if (!r.url || !content) return []
+      return [
+        {
+          content,
+          sourceType: 'search-result',
+          url: r.url,
+          title: r.title,
+          publishedAt: r.publishedDate,
+          score: r.score,
+        },
+      ]
+    }).slice(0, max)
+  } catch (error: unknown) {
+    if (options.signal?.aborted || isAbortError(error)) throw error
+    console.error('SearXNG search failed:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    throw new Error(`SearXNG Error: ${message}`)
+  }
+}
+
 async function searchWithSerply(
   config: WebSearchConfig,
   query: string,
@@ -479,6 +561,8 @@ export async function searchWeb(
       return searchWithYoucom(config, query, options)
     case 'serply':
       return searchWithSerply(config, query, options)
+    case 'searxng':
+      return searchWithSearxng(config, query, options)
     case 'tavily':
     default:
       return searchWithTavily(config, query, options)

@@ -10,7 +10,10 @@ export const researchInputLimits = {
 } as const
 
 const requiredText = z.string().trim().min(1)
-const SUPPORTED_LOCALES = ['en', 'zh', 'nl', 'ko'] as const
+// Must agree with `locales` in nuxt.config.ts and `availableLocales` in
+// i18n/i18n.config.ts: a locale the UI offers but this list lacks is a 400
+// on every research request — the error names the enum, not the cause.
+const SUPPORTED_LOCALES = ['en', 'zh', 'nl', 'ko', 'th'] as const
 
 /**
  * Browsers/OSes commonly report region-qualified locales such as `en-US`,

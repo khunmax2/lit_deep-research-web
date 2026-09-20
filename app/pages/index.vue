@@ -15,11 +15,15 @@
             </h1>
           </div>
           <div class="mx-auto sm:ml-auto sm:mr-0 flex items-center gap-2">
-            <GitHubButton />
+            <!-- A host that frames this page (?embed=1) draws its own language
+                 and theme controls and owns the settings; showing ours as
+                 well is how an embed announces itself as a second app.
+                 History stays: it is this page's own and the host has none. -->
+            <GitHubButton v-if="!isEmbedded" />
             <HistoryModal :disabled="isRunning" @load="loadHistoryItem" />
-            <ConfigManager />
-            <ColorModeButton />
-            <LangSwitcher />
+            <ConfigManager v-if="!isEmbedded" />
+            <ColorModeButton v-if="!isEmbedded" />
+            <LangSwitcher v-if="!isEmbedded" />
           </div>
         </div>
 
@@ -86,6 +90,7 @@
   const { t } = useI18n()
   const version = runtimeConfig.public.version
   const isServerMode = runtimeConfig.public.serverMode
+  const { isEmbedded } = useEmbed()
 
   const feedbackRef = useTemplateRef<InstanceType<typeof ResearchFeedback>>('feedbackComponent')
   const deepResearchRef = useTemplateRef<InstanceType<typeof DeepResearch>>('deepResearch')

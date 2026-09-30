@@ -25,7 +25,7 @@
  * Stopping: kill the process. It also exits when stdin closes, so it never
  * outlives the process that started it.
  */
-import { deepResearch, writeFinalReport } from '~~/lib/core/deep-research'
+import { deepResearch, writeFinalReport, type ResearchStep } from '~~/lib/core/deep-research'
 import { createReadSource, searchWeb, type WebSearchFunction } from '~~/lib/core/web-search'
 import type { ResearchLearning } from '~~/shared/types/research-session'
 import type { ConfigAi, ConfigWebSearchProvider } from '~~/shared/types/config'
@@ -103,6 +103,32 @@ async function main() {
     for (const item of items ?? []) learned.set(JSON.stringify([item.url, item.learning]), item)
   }
 
+  // The research tree, as the web app's canvas draws it (SearchFlow.vue):
+  // one `node` event whenever a node appears or its state changes, never
+  // for the streamed deltas in between, so lit-storm can draw it too.
+  const nodes = new Map<string, { status: string; query?: string; goal?: string }>()
+  const tree = (step: ResearchStep) => {
+    if (step.type === 'complete' || !('nodeId' in step)) return
+    const status = step.type.replace(/_reasoning$/, '')
+    const known = nodes.get(step.nodeId)
+    const query = 'query' in step && typeof step.query === 'string' ? step.query : known?.query
+    const goal =
+      step.type === 'generated_query' ? (step.result.researchGoal as string | undefined) : known?.goal
+    if (known && known.status === status && known.query === query && known.goal === goal) return
+    nodes.set(step.nodeId, { status, query, goal })
+    emit({
+      type: 'node',
+      id: step.nodeId,
+      parent: step.type === 'generating_query' ? step.parentNodeId : undefined,
+      status,
+      query,
+      goal,
+      ...(step.type === 'search_complete' ? { sources: step.results.length } : {}),
+      ...(step.type === 'node_complete' ? { learnings: step.result?.learnings?.length ?? 0 } : {}),
+      ...(step.type === 'error' ? { message: step.message } : {}),
+    })
+  }
+
   emit({ type: 'stage', stage: 'research' })
   let learnings: ResearchLearning[] = []
   try {
@@ -117,6 +143,7 @@ async function main() {
       pLimitInstance: pLimit(2),
       signal: gather.signal,
       onProgress: (step) => {
+        tree(step)
         if (step.type === 'search_complete') {
           emit({ type: 'searched', urls: step.results.map((r) => r.url), titles: step.results.map((r) => r.title ?? '') })
         } else if (step.type === 'node_complete') {

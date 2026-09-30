@@ -29,6 +29,13 @@ export interface ConfigAi {
    * requests through an outbound proxy. Never set in the browser.
    */
   fetch?: typeof fetch
+  /**
+   * Server-only, for lit-storm's CLI (cli/litstorm.ts): extra fields in every
+   * request body (OpenRouter: a model's reasoning setting), and a callback
+   * with each call's tokens.
+   */
+  extraBody?: Record<string, unknown>
+  onUsage?: (usage: { promptTokens: number; completionTokens: number }) => void
 }
 
 export interface ConfigWebSearch {

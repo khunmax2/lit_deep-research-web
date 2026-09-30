@@ -2,7 +2,7 @@ import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { wrapLanguageModel, extractReasoningMiddleware } from 'ai'
-import type { LanguageModelV1 } from 'ai'
+import type { LanguageModelV1, LanguageModelV1Middleware } from 'ai'
 import type { ConfigAi, ConfigAiProvider } from '../types/config'
 
 export function isAiApiKeyRequired(provider: ConfigAiProvider) {
@@ -18,6 +18,8 @@ export function getLanguageModel(config: ConfigAi) {
       apiKey: config.apiKey,
       baseURL: apiBase,
       fetch: config.fetch,
+      // lit-storm: the model's reasoning setting, sent with every request.
+      extraBody: config.extraBody,
     })
     model = openRouter(config.model, {
       includeReasoning: true,
@@ -45,10 +47,39 @@ export function getLanguageModel(config: ConfigAi) {
     model = openai(config.model)
   }
 
-  return wrapLanguageModel({
+  const wrapped = wrapLanguageModel({
     model,
     middleware: extractReasoningMiddleware({ tagName: 'think' }),
   })
+  return config.onUsage ? wrapLanguageModel({ model: wrapped, middleware: usageMiddleware(config.onUsage) }) : wrapped
+}
+
+/**
+ * Report each call's tokens as it finishes (lit-storm counts a Run's cost
+ * from them). Streams carry them on their "finish" part.
+ */
+function usageMiddleware(onUsage: NonNullable<ConfigAi['onUsage']>): LanguageModelV1Middleware {
+  return {
+    async wrapGenerate({ doGenerate }) {
+      const result = await doGenerate()
+      onUsage({ promptTokens: result.usage.promptTokens, completionTokens: result.usage.completionTokens })
+      return result
+    },
+    async wrapStream({ doStream }) {
+      const { stream, ...rest } = await doStream()
+      const counted = stream.pipeThrough(
+        new TransformStream({
+          transform(part, controller) {
+            if (part.type === 'finish') {
+              onUsage({ promptTokens: part.usage.promptTokens, completionTokens: part.usage.completionTokens })
+            }
+            controller.enqueue(part)
+          },
+        }),
+      )
+      return { stream: counted, ...rest }
+    },
+  }
 }
 
 export function getApiBase(config: ConfigAi) {

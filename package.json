@@ -13,7 +13,8 @@
     "format": "prettier --write app server lib shared",
     "lint": "prettier --check app server lib shared",
     "test": "node --experimental-strip-types --import ./test/register-aliases.mjs --test \"test/**/*.test.ts\" \"lib/**/*.test.ts\"",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "build:litstorm": "node cli/build.mjs"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^0.1.16",
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@vueuse/core": "^13.0.0",
     "@vueuse/nuxt": "^13.0.0",
+    "esbuild": "0.25.8",
     "prettier": "^3.5.3",
     "typescript": "5.8.3",
     "vue-tsc": "3.0.4"
